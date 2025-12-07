@@ -84,7 +84,10 @@ app/
     "ip": "127.0.0.1"
     }
     ```
-
+6. *Healthcheck endpoint*
+    ```bash
+    http://127.0.0.1:8080/health
+    ```
 
 ## **2️⃣ Running Unit Tests**
 

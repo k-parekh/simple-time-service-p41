@@ -53,6 +53,12 @@ COPY --chown=appuser:appuser . .
 # Expose Application port
 EXPOSE 8080
 
+########################################
+# Healthcheck (Prevents restarting loops)
+########################################
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \
+  CMD curl --fail http://localhost:8000/health || exit 1
+
 ############################################
 # Gunicorn with Uvicorn Workers (Production)
 ############################################

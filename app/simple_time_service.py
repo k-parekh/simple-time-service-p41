@@ -93,3 +93,8 @@ async def root_handler(request: Request):
 @app.get("/favicon.ico")
 async def favicon():
     return Response(content=None, status_code=204)  # No Content
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
