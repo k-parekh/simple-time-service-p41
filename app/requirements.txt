@@ -1,0 +1,6 @@
+fastapi           # Main web framework used to build the API
+uvicorn           # ASGI server used in development; also serves as worker class for Gunicorn
+gunicorn          # Production-grade WSGI/ASGI server used to run FastAPI with optimal performance and worker management
+python-json-logger # Structured JSON logging for observability
+pytest            # Unit testing framework
+httpx             # HTTP client used in test cases
