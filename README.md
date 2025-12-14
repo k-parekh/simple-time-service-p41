@@ -12,7 +12,7 @@ This README is written for **beginners**, including people with **no prior DevOp
 ## Repository Structure
 
 ```
-simple-time-service-p41/
+simple-time-service/
 ├── simple_time_service/
 │   ├── Dockerfile
 │   ├── README.md
@@ -23,6 +23,7 @@ simple-time-service-p41/
 │
 ├── terraform/
 │   ├── .terraform.lock.hcl
+│   ├── .gitignore
 │   ├── README.md
 │   ├── backend.tf
 │   ├── container_app.tf
@@ -36,7 +37,6 @@ simple-time-service-p41/
 │   ├── terraform.tfvars
 │   └── variables.tf
 │
-├── .gitignore
 └── README.md  (this file)
 ```
 
@@ -119,6 +119,70 @@ docker compose down
 
 ---
 
+## Authenticating to Azure
+
+Terraform needs permission to interact with Azure in order to create, update, and delete resources. You must authenticate before running any Terraform commands.
+
+This project supports multiple authentication methods. If you are new to Azure or DevOps, **Azure CLI authentication is the simplest and recommended approach**.
+
+### Option 1: Azure CLI Authentication (Recommended)
+
+1. Install the Azure CLI:
+   [https://learn.microsoft.com/cli/azure/install-azure-cli](https://learn.microsoft.com/cli/azure/install-azure-cli)
+
+2. Log in to Azure:
+
+   ```bash
+   az login
+   ```
+
+3. List available subscriptions and select the one you want to use:
+
+   ```bash
+   az account list --output table
+   az account set --subscription "<SUBSCRIPTION_ID>"
+   ```
+
+Terraform will automatically use the credentials from the Azure CLI. No secrets are stored in Terraform files.
+
+### Option 2: Service Principal Authentication (For CI/CD)
+
+For automated environments such as CI/CD pipelines, use a Service Principal.
+
+1. Create a Service Principal:
+
+   ```bash
+   az ad sp create-for-rbac \
+     --name "terraform-sp" \
+     --role Contributor \
+     --scopes /subscriptions/<SUBSCRIPTION_ID>
+   ```
+
+2. Export the credentials as environment variables:
+
+   ```bash
+   export ARM_CLIENT_ID="<appId>"
+   export ARM_CLIENT_SECRET="<password>"
+   export ARM_SUBSCRIPTION_ID="<subscriptionId>"
+   export ARM_TENANT_ID="<tenantId>"
+   ```
+
+Terraform will automatically detect these variables.
+
+### Common Authentication Errors
+
+* **Subscription ID could not be determined**
+  Ensure you ran `az login` and selected a subscription using `az account set`.
+
+* **MissingSubscriptionRegistration**
+  Register required providers:
+
+  ```bash
+  az provider register --namespace Microsoft.App
+  ```
+
+---
+
 ## ️ Part 2: Infrastructure (Terraform)
 
 The `terraform/` directory provisions **Azure infrastructure** and deploys the container using **Azure Container Apps**.
@@ -194,15 +258,48 @@ After deployment, Terraform outputs the **application URL**.
 
 ---
 
-## ️ Common Errors & Solutions
+## ️ Common Errors & How We Solved Them
 
-### MissingSubscriptionRegistration: Microsoft.App
+### 1. `gunicorn: executable file not found`
+
+Fixed by adding `gunicorn` to `requirements.txt`
+
+---
+
+### 2. `ModuleNotFoundError: No module named 'main'`
+
+Fixed by pointing Gunicorn to the correct module:
+
+```
+simple_time_service:app
+```
+
+---
+
+### 3. `JSONResponse missing content`
+
+Fixed by using `Response(status_code=204)` for `/favicon.ico`
+
+---
+
+### 4. `MissingSubscriptionRegistration: Microsoft.App`
 
 Fixed by registering provider:
 
 ```bash
 az provider register --namespace Microsoft.App
 ```
+
+---
+
+### 5. Terraform CIDR / subnet calculation failures
+
+Solved using:
+
+* `cidrsubnet()`
+* validated `vnet_cidr`
+* computed subnet indexes using `locals.tf`
+
 ---
 
 ## Production Best Practices Used
@@ -214,3 +311,12 @@ az provider register --namespace Microsoft.App
 * Terraform state backend
 * Variable validations
 * `for_each` subnet creation
+
+---
+
+## Next Steps
+
+* Add Azure Front Door or Application Gateway
+* Add CI/CD pipeline (GitHub Actions / Azure DevOps)
+* Enable autoscaling rules
+* Add monitoring dashboards
