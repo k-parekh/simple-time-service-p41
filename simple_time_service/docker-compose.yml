@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  simple-time-service:
+    # Use local Dockerfile to build the image
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: simple-time-service
+    ports:
+      - "8080:8080"  # Expose container port 8080 on host
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1  # Ensures logs appear in real-time
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
