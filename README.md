@@ -283,7 +283,5 @@ az provider register --namespace Microsoft.App
 
 ## Next Steps
 
-* Add Azure Front Door or Application Gateway
 * Add CI/CD pipeline (GitHub Actions / Azure DevOps)
-* Enable autoscaling rules
 * Add monitoring dashboards
