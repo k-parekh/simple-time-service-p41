@@ -119,6 +119,70 @@ docker compose down
 
 ---
 
+## Authenticating to Azure
+
+Terraform needs permission to interact with Azure in order to create, update, and delete resources. You must authenticate before running any Terraform commands.
+
+This project supports multiple authentication methods. If you are new to Azure or DevOps, **Azure CLI authentication is the simplest and recommended approach**.
+
+### Option 1: Azure CLI Authentication (Recommended)
+
+1. Install the Azure CLI:
+   [https://learn.microsoft.com/cli/azure/install-azure-cli](https://learn.microsoft.com/cli/azure/install-azure-cli)
+
+2. Log in to Azure:
+
+   ```bash
+   az login
+   ```
+
+3. List available subscriptions and select the one you want to use:
+
+   ```bash
+   az account list --output table
+   az account set --subscription "<SUBSCRIPTION_ID>"
+   ```
+
+Terraform will automatically use the credentials from the Azure CLI. No secrets are stored in Terraform files.
+
+### Option 2: Service Principal Authentication (For CI/CD)
+
+For automated environments such as CI/CD pipelines, use a Service Principal.
+
+1. Create a Service Principal:
+
+   ```bash
+   az ad sp create-for-rbac \
+     --name "terraform-sp" \
+     --role Contributor \
+     --scopes /subscriptions/<SUBSCRIPTION_ID>
+   ```
+
+2. Export the credentials as environment variables:
+
+   ```bash
+   export ARM_CLIENT_ID="<appId>"
+   export ARM_CLIENT_SECRET="<password>"
+   export ARM_SUBSCRIPTION_ID="<subscriptionId>"
+   export ARM_TENANT_ID="<tenantId>"
+   ```
+
+Terraform will automatically detect these variables.
+
+### Common Authentication Errors
+
+* **Subscription ID could not be determined**
+  Ensure you ran `az login` and selected a subscription using `az account set`.
+
+* **MissingSubscriptionRegistration**
+  Register required providers:
+
+  ```bash
+  az provider register --namespace Microsoft.App
+  ```
+
+---
+
 ## ️ Part 2: Infrastructure (Terraform)
 
 The `terraform/` directory provisions **Azure infrastructure** and deploys the container using **Azure Container Apps**.
@@ -214,3 +278,10 @@ az provider register --namespace Microsoft.App
 * Terraform state backend
 * Variable validations
 * `for_each` subnet creation
+
+---
+
+## Next Steps
+
+* Add CI/CD pipeline (GitHub Actions / Azure DevOps)
+* Add monitoring dashboards
