@@ -194,48 +194,15 @@ After deployment, Terraform outputs the **application URL**.
 
 ---
 
-## ️ Common Errors & How We Solved Them
+## ️ Common Errors & Solutions
 
-### 1. `gunicorn: executable file not found`
-
-Fixed by adding `gunicorn` to `requirements.txt`
-
----
-
-### 2. `ModuleNotFoundError: No module named 'main'`
-
-Fixed by pointing Gunicorn to the correct module:
-
-```
-simple_time_service:app
-```
-
----
-
-### 3. `JSONResponse missing content`
-
-Fixed by using `Response(status_code=204)` for `/favicon.ico`
-
----
-
-### 4. `MissingSubscriptionRegistration: Microsoft.App`
+### MissingSubscriptionRegistration: Microsoft.App
 
 Fixed by registering provider:
 
 ```bash
 az provider register --namespace Microsoft.App
 ```
-
----
-
-### 5. Terraform CIDR / subnet calculation failures
-
-Solved using:
-
-* `cidrsubnet()`
-* validated `vnet_cidr`
-* computed subnet indexes using `locals.tf`
-
 ---
 
 ## Production Best Practices Used
