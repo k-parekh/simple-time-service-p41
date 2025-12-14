@@ -12,7 +12,7 @@ This README is written for **beginners**, including people with **no prior DevOp
 ## Repository Structure
 
 ```
-simple-time-service/
+simple-time-service-p41/
 ├── simple_time_service/
 │   ├── Dockerfile
 │   ├── README.md
@@ -23,7 +23,6 @@ simple-time-service/
 │
 ├── terraform/
 │   ├── .terraform.lock.hcl
-│   ├── .gitignore
 │   ├── README.md
 │   ├── backend.tf
 │   ├── container_app.tf
@@ -37,6 +36,7 @@ simple-time-service/
 │   ├── terraform.tfvars
 │   └── variables.tf
 │
+├── .gitignore
 └── README.md  (this file)
 ```
 
