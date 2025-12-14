@@ -23,7 +23,6 @@ simple-time-service-p41/
 │
 ├── terraform/
 │   ├── .terraform.lock.hcl
-│   ├── .gitignore
 │   ├── README.md
 │   ├── backend.tf
 │   ├── container_app.tf
@@ -37,6 +36,7 @@ simple-time-service-p41/
 │   ├── terraform.tfvars
 │   └── variables.tf
 │
+├── .gitignore
 └── README.md  (this file)
 ```
 
