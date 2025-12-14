@@ -1,140 +1,249 @@
-# Simple Time Service
+# Simple Time Service – Application & Infrastructure
 
-This repository contains the full-stack setup for `Simple Time Service`, including the Python container application and Terraform code to deploy it to Azure.
+This repository contains **two major parts**:
 
-## Project Structure
+1. **Application** – a containerized FastAPI service that returns the current UTC timestamp
+2. **Infrastructure** – Terraform code to provision Azure infrastructure and run the container using **Azure Container Apps**
+
+This README is written for **beginners**, including people with **no prior DevOps or cloud experience**. Follow the steps in order and you will be able to run the app locally, in Docker, and in Azure.
+
+---
+
+## Repository Structure
 
 ```
-root/
-├── simple_time_service/       # Python microservice application
-│   ├── simple_time_service.py # FastAPI application code
-│   ├── requirements.txt       # Python dependencies
-│   ├── test_simple_time_service.py # Pytest test cases
-│   ├── Dockerfile             # Docker image definition
-│   ├── docker-compose.yml     # Docker Compose for local multi-container testing
-│   └── README.md              # Application-specific README
-├── terraform/                 # Terraform infrastructure code
-│   ├── main.tf
-│   ├── variables.tf
-│   ├── outputs.tf
-│   ├── provider.tf
+simple-time-service-p41/
+├── simple_time_service/
+│   ├── Dockerfile
+│   ├── README.md
+│   ├── docker-compose.yml
+│   ├── requirements.txt
+│   ├── simple_time_service.py
+│   └── test_simple_time_service.py
+│
+├── terraform/
+│   ├── .terraform.lock.hcl
+│   ├── .gitignore
+│   ├── README.md
+│   ├── backend.tf
+│   ├── container_app.tf
+│   ├── container_apps_env.tf
+│   ├── locals.tf
+│   ├── log_analytics.tf
 │   ├── networks.tf
-│   ├── container_apps.tf
-│   └── locals.tf
-└── README.md                  # Root README (this file)
+│   ├── output.tf
+│   ├── provider.tf
+│   ├── resource_group.tf
+│   ├── terraform.tfvars
+│   └── variables.tf
+│
+└── README.md  (this file)
 ```
 
-## Application Overview
+---
 
-`SimpleTimeService` is a Python FastAPI-based microservice that:
+## Part 1: Application (simple_time_service)
 
-* Returns the current timestamp in UTC.
-* Returns the IP address of the client making the request.
-* Provides a `/favicon.ico` endpoint with proper handling.
+The application is a **FastAPI** service that exposes:
 
-The service is containerized using Docker for portability.
+* `/` → returns current UTC timestamp in ISO-8601 format
+* `/health` → health check endpoint
+* `/favicon.ico` → handled safely (204 response)
 
-## Prerequisites
+### Run Locally (No Docker)
 
-* Python 3.11+
-* Docker & Docker Compose
-* Terraform 1.5+
-* Azure CLI (for deploying to Azure)
-* Git
+#### 1. Create a virtual environment
 
-## Local Setup (Python Service)
-
-1. **Clone the repository**
-
-```
-git clone <repo-url>
-cd root/simple_time_service
-```
-
-2. **Install Python dependencies**
-
-```
+```bash
 python -m venv venv
-source venv/bin/activate  # Linux/Mac
-venv\Scripts\activate     # Windows
+source venv/bin/activate   # Linux/macOS
+venv\\Scripts\\activate      # Windows
+```
+
+#### 2. Install dependencies
+
+```bash
 pip install -r requirements.txt
 ```
 
-3. **Run the application locally**
+#### 3. Run the app
 
-```
-uvicorn simple_time_service:app --host 0.0.0.0 --port 8080
-```
-
-Open [http://127.0.0.1:8080/](http://127.0.0.1:8080/) in your browser or use `curl`.
-
-4. **Run tests**
-
-```
-pytest -v
+```bash
+python simple_time_service.py
 ```
 
-## Local Docker Setup
-
-1. **Build the Docker image**
+Open browser:
 
 ```
-docker build -t simpletimeservice:latest .
+http://localhost:8080
 ```
 
-2. **Run the container**
+---
 
-```
-docker run -d -p 8080:8080 simpletimeservice:latest
+### Run Tests
+
+```bash
+pytest
 ```
 
-3. **Using Docker Compose**
+All tests validate:
 
-```
+* Timestamp format
+* UTC timezone correctness
+* API response behavior
+
+---
+
+### Run Using Docker Compose
+
+Docker-related files are located **inside the `simple_time_service` directory**.
+
+#### 1. Build and run
+
+```bash
 cd simple_time_service
-docker-compose up --build
+docker compose up --build
 ```
 
-Access the service at [http://127.0.0.1:8080/](http://127.0.0.1:8080/).
-
-## Terraform Deployment
-
-1. Navigate to the `terraform` folder
+#### 2. Access the app
 
 ```
+http://localhost:8080
+```
+
+#### 3. Stop containers
+
+```bash
+docker compose down
+```
+
+---
+
+## ️ Part 2: Infrastructure (Terraform)
+
+The `terraform/` directory provisions **Azure infrastructure** and deploys the container using **Azure Container Apps**.
+
+### What Terraform Creates
+
+* Resource Group
+* Virtual Network (VNet)
+
+  * Public subnets
+  * Private subnets
+  * Dedicated delegated subnet for Container Apps (`Microsoft.Web/containerApps`)
+* Log Analytics Workspace
+* Azure Container Apps Environment (private)
+* Azure Container App
+
+The container app:
+
+* Runs **inside private subnets only**
+* Is exposed securely using Azure-managed ingress
+
+---
+
+## ️ Terraform Backend (Important)
+
+Terraform **state** is stored remotely using an Azure Storage Account (defined in `backend.tf`).
+
+### Why a backend?
+
+* Prevents state loss
+* Enables team collaboration
+* Required for production-grade Terraform
+
+### Backend Requirements (Must Exist Before `terraform init`)
+
+You must manually create:
+
+* A **Resource Group**
+* A **Storage Account**
+* A **Blob Container** (e.g. `tfstate`)
+
+Example (Azure CLI):
+
+```bash
+az group create --name tfstate-rg --location eastus
+
+az storage account create \
+  --name mystatetf123 \
+  --resource-group tfstate-rg \
+  --location eastus \
+  --sku Standard_LRS
+
+az storage container create \
+  --name tfstate \
+  --account-name mystatetf123
+```
+
+Then update `backend.tf` accordingly.
+
+---
+
+## ️ Deploy Infrastructure
+
+```bash
 cd terraform
-```
-
-2. Initialize Terraform
-
-```
 terraform init
-```
-
-3. Plan the deployment
-
-```
+terraform validate
 terraform plan
-```
-
-4. Apply the deployment
-
-```
 terraform apply
 ```
 
-5. Once deployed, access the `container_app_url` from Terraform outputs.
+After deployment, Terraform outputs the **application URL**.
 
-## Notes
+---
 
-* Local development uses Docker and Docker Compose.
-* Terraform provisions all Azure resources required for hosting the container.
-* Ensure you have sufficient permissions in Azure for provider registration and resource creation.
-* The container app runs in a private subnet with a managed environment and logs to Log Analytics.
+## ️ Common Errors & How We Solved Them
 
-## References
+### 1. `gunicorn: executable file not found`
 
-* [FastAPI Documentation](https://fastapi.tiangolo.com/)
-* [Docker Documentation](https://docs.docker.com/)
-* [Terraform Azure Provider](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs)
-* [Azure Container Apps](https://learn.microsoft.com/en-us/azure/container-apps/)
+Fixed by adding `gunicorn` to `requirements.txt`
+
+---
+
+### 2. `ModuleNotFoundError: No module named 'main'`
+
+Fixed by pointing Gunicorn to the correct module:
+
+```
+simple_time_service:app
+```
+
+---
+
+### 3. `JSONResponse missing content`
+
+Fixed by using `Response(status_code=204)` for `/favicon.ico`
+
+---
+
+### 4. `MissingSubscriptionRegistration: Microsoft.App`
+
+Fixed by registering provider:
+
+```bash
+az provider register --namespace Microsoft.App
+```
+
+---
+
+### 5. Terraform CIDR / subnet calculation failures
+
+Solved using:
+
+* `cidrsubnet()`
+* validated `vnet_cidr`
+* computed subnet indexes using `locals.tf`
+
+---
+
+## Production Best Practices Used
+
+* Non-root Docker user
+* Gunicorn + Uvicorn worker
+* Private subnets for workloads
+* Managed SSL via Azure ingress
+* Terraform state backend
+* Variable validations
+* `for_each` subnet creation
